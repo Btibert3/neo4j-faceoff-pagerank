@@ -28,3 +28,22 @@
 # # with driver.session() as session:
 # #   session.
 # # 
+
+import hockey_scraper
+import requests
+import pandas as pd
+from py2neo import Graph
+
+# get the 2018/19 gameids
+URL = "http://www.nicetimeonice.com/api/seasons/20182019/games"
+resp = requests.get(URL)
+data = resp.json()
+
+# connect to neo4j
+driver = Graph(user="neo4j", password="password")
+driver.schema.create_uniqueness_constraint("Game", "id")
+
+# list of games
+games = pd.DataFrame(data)
+gids = list(games.gameID)
+
