@@ -22,29 +22,60 @@ collect_game = function(gid) {
   return(pbp)
 }
 
-## function to parse the data into 1 large dataframe by extracting out
-## the parsed list-dataframes in a list
-## game object saved
-parse_game = function(pbp) {
-  # init the object
-  pbp_list = list()
-  # the game id
-  pbp_list$game_info = x
-  # 
-  
-}
-
-# look into purr stuff
-playsdf = pbp$liveData$plays$allPlays
-pbp_result = playsdf$result
-pbp_result[1:5,]
-pbp_about = playsdf$about
-pbp_about[1:5, ]
-pbp_coords = playsdf$coordinates
-pbp_coords[1:5, ]
-pbp_team = playsdf$team
-pbp_team[1:5, ]
-pbp_players = playsdf$players
-pbp_players[1:5]
 
 
+# 
+# 
+# 
+# ## function to parse the data into 1 large dataframe by extracting out
+# ## the parsed list-dataframes in a list
+# ## game object saved
+# parse_game = function(pbp) {
+#   # extract the gameid and compontents
+#   gid = pbp$gamePk
+#   playsdf = pbp$liveData$plays$allPlays
+#   results = playsdf$result
+#   about = playsdf$about
+#   coords = playsdf$coordinates
+#   players = playsdf$players
+#   team = playsdf$team
+# 
+#   # # put on the gameids as the joining factor
+#   # results$gid = gid
+#   # about$gid = gid
+#   # coords$gid = gid
+#   # players$gid = gid
+#   # team$gid = gid
+#   results$rid = 1:nrow()
+#   
+#   # cleanup
+#   result$strength = NULL
+#   about$goals = NULL
+#   
+#   # build the dataset
+#   df = cbind(results, about)
+#   df = cbind(df, coords)
+#   
+#   
+# }
+# 
+# 
+# 
+# 
+# 
+# 
+# # look into purr stuff
+# gid = pbp$gamePk
+# playsdf = pbp$liveData$plays$allPlays
+# pbp_result = playsdf$result
+# pbp_result[1:5,]
+# pbp_about = playsdf$about
+# pbp_about[1:5, ]
+# pbp_coords = playsdf$coordinates
+# pbp_coords[1:5, ]
+# pbp_team = playsdf$team
+# pbp_team[1:5, ]
+# pbp_players = playsdf$players
+# pbp_players[1:5]
+# 
+# 
