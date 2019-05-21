@@ -8,6 +8,12 @@ Pagerank for NHL faceoffs (mark's tennis post) using neo4j in docker, apoc, etc.
 docker-compose up -d
 ```
 
+which comes with:
+
+- neo4j - parse the logs into a graph model
+- mongo - to hold the original json files and cache for ETL
+- mongo express (port 8081)
+
 
 ## data
 

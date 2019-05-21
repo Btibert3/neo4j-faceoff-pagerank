@@ -4,3 +4,4 @@
 .Ruserdata
 neo4j/
 mongo/
+.ipynb_checkpoints/
