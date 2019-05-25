@@ -24,3 +24,5 @@ nicetimeonice api
 faceoffs have flag (for this season) winner and loser
 
 https://medium.com/neo4j/finding-the-best-tennis-players-of-all-time-using-weighted-pagerank-6950ed5fc98e
+
+https://py2neo.org/v4/database.html?highlight=merge#py2neo.database.Graph.merge
