@@ -2,6 +2,7 @@
 .Rhistory
 .RData
 .Ruserdata
-neo4j/
-mongo/
+mongo/data
 .ipynb_checkpoints/
+neo4j/data
+archive/
