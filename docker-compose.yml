@@ -12,6 +12,7 @@ services:
       - ./neo4j/conf:/conf
       - ./neo4j/import:/import
       - ./neo4j/plugins:/plugins
+      - .neo4j/logs:/logs
     environment:
       NEO4J_AUTH: neo4j/password
       NEO4J_apoc_export_file_enabled: "true"
@@ -25,11 +26,9 @@ services:
       - 27017:27017
     volumes:
         - ./mongo/data/db:/data/db
-  
+
   mongo-express:
     image: mongo-express:latest
     restart: always
     ports:
       - 8081:8081
-
- 
