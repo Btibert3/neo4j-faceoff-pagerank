@@ -12,7 +12,7 @@ services:
       - ./neo4j/conf:/conf
       - ./neo4j/import:/import
       - ./neo4j/plugins:/plugins
-      - .neo4j/logs:/logs
+      - ./neo4j/logs:/logs
     environment:
       NEO4J_AUTH: neo4j/password
       NEO4J_apoc_export_file_enabled: "true"
