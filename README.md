@@ -12,7 +12,8 @@ which comes with:
 
 - neo4j - parse the logs into a graph model
 - mongo - to hold the original json files and cache for ETL
-- mongo express (port 8081)
+- mongo express (port 8081)  -- started failing after streamsets
+- streamsets  (admin/admin on 18630)
 
 
 ## data
