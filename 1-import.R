@@ -238,9 +238,6 @@ while (!is.null(x<-it$one())){
 ######################## PLAYS data
 
 it <- m$iterate('{}')
-# pbp = data.frame()
-# pbp_players = data.frame()
-# pbp_team = data.frame()
 
 ## iterate and do the things
 abc = 1
@@ -280,13 +277,13 @@ while (!is.null(x<-it$one())) {
       play_players = data.frame()
       for (p in 1:length(play$players)) {
         tmp_player = play$players[[p]]
-        tmp_plyr = data.frame(pid = tmp_player$player$id, ptype = tmp_player$playerType)
+        tmp_plyr = data.frame(player_id = tmp_player$player$id, ptype = tmp_player$playerType)
         play_players = bind_rows(play_players, tmp_plyr)
         rm(tmp_player, tmp_plyr)
       }
       play_players$gid = gid
       play_players$pid = pid
-      play_players$seqnum = p
+      play_players$seqnum = i
       pbp_players = bind_rows(pbp_players, play_players)
       rm(play_players)
     }
@@ -315,12 +312,18 @@ while (!is.null(x<-it$one())) {
     pbp = bind_rows(pbp, tmp_pbp)
     # cleanup
     rm(play, pid, result, goals, about)
+    cat("finished play ", i, "\n")
   }
   
   # save out the data for import
   write_csv(pbp, "neo4j/import/pbp.csv")
   write_csv(pbp_players, "neo4j/import/pbp_players.csv")
-  write_csv(teams, "neo4j/import/pbp_team.csv")
+  write_csv(pbp_team, "neo4j/import/pbp_team.csv")
+  pbp_seq = pbp %>% 
+    transform(prev_play = lag(pid)) %>% 
+    select(gid, pid, seqnum, prev_play) %>% 
+    filter(!is.na(prev_play))
+  write_csv(pbp_seq, "neo4j/import/pbp_seq.csv")
   
   # import the plays -- gameid could be removed but for testing
   CYPHER = "
@@ -348,20 +351,31 @@ while (!is.null(x<-it$one())) {
   # import the players referenced in the play
   CYPHER = "
   LOAD CSV WITH HEADERS FROM 'file:///pbp_players.csv' as row 
-  MERGE (n:Player {id:row.id})
+  MERGE (n:Player {id:row.player_id})
   MERGE (p:Play {id:row.pid})
   WITH row, n, p
-  // https://markhneedham.com/blog/2016/10/30/neo4j-create-dynamic-relationship-type/
-  CALL apoc.create.relationship(p, row.ptype, {}, n) YIELD rel
-  RETURN rel
+  CREATE (n)-[:IN_PLAY {role:row.ptype}]->(p)
+  "
+  call_neo4j(CYPHER, graph)  
+  
+  # link the plays
+  CYPHER = "
+  LOAD CSV WITH HEADERS FROM 'file:///pbp_seq.csv' as row 
+  MERGE (a:Play {id:row.prev_play})
+  MERGE (b:Play {id:row.pid})
+  CREATE (a)-[:NEXT]->(b)
   "
   call_neo4j(CYPHER, graph)  
 
   # cleanup
-  cat("finished ", abc, "\n")
+  cat("finished game", abc, "\n")
   abc = abc + 1
 
 } #endhwile
+
+
+
+
 
 
 

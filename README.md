@@ -30,3 +30,9 @@ https://py2neo.org/v4/database.html?highlight=merge#py2neo.database.Graph.merge
 
 
 ## getting the plugins
+
+APOC
+
+* https://github.com/neo4j-contrib/neo4j-apoc-procedures/releases/download/3.5.0.4/apoc-3.5.0.4-all.jar
+
+
