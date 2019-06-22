@@ -389,5 +389,11 @@ while (!is.null(x<-it$one())) {
 } #endhwile
 
 
+## cleanup self relationships
+CYPHER = "
+MATCH (a:Play)-[r:NEXT]->(a)
+DELETE r
+"
+call_neo4j(CYPHER, graph) 
 
 
