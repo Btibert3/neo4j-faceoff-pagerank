@@ -46,6 +46,8 @@ m$count()
 
 ##  ^^^^^^^^^^^^^^^^
 
+
+
 ######################## GAME data
 it <- m$iterate('{}')
 game_data = data.frame()
@@ -72,8 +74,8 @@ with row
 MERGE (n:Game {id:row.id})
 ON CREATE SET n += row
 "
-call_neo4j("CREATE CONSTRAINT ON (n:Game) ASSERT n.id IS UNIQUE;", graph)
-call_neo4j(CYPHER, graph)
+call_neo4j("CREATE CONSTRAINT ON (n:Game) ASSERT n.id IS UNIQUE;", graph, include_stats = F, include_meta = F)
+call_neo4j(CYPHER, graph, include_stats = F, include_meta = F)
 
 
 ######################## VENUE data
@@ -116,6 +118,7 @@ call_neo4j(CYPHER, graph)
 
 ######################## create the teams
 
+## get the teams from the api
 resp = jsonlite::fromJSON("http://statsapi.web.nhl.com/api/v1/teams")
 teams = resp$teams
 colnames(teams$division) = paste0("division_", colnames(teams$division))
@@ -141,15 +144,45 @@ while (!is.null(x<-it$one())){
   team_game <<- bind_rows(team_game, tmp_df)
 }
 
+
+## save the datasets
+write_csv(team_game, "neo4j/import/team_game.csv")
+write_csv(teams, "neo4j/import/teams.csv")
+
+## add the teams
+CYPHER = "
+LOAD CSV WITH HEADERS FROM 'file:///teams.csv' as row 
+WITH row
+MERGE (n:Team {id:row.id})
+ON CREATE SET n += row
+"
+call_neo4j("CREATE CONSTRAINT ON (n:Team) ASSERT n.id IS UNIQUE;", graph)
+call_neo4j(CYPHER, graph)
+
+## associate the teams to the game
+CYPHER = "
+LOAD CSV WITH HEADERS FROM 'file:///team_game.csv' as row 
+WITH row
+MATCH (a:Team {id:row.away_id})
+MATCH (h:Team {id:row.home_id})
+MATCH (g:Game {id:row.gid})
+CREATE (h)<-[:HOME]-(g)-[:AWAY]->(a)
+"
+call_neo4j(CYPHER, graph)
+
+
 ######################## PLAYER data
 
 it <- m$iterate('{}')
-players = data.frame()
+# players = data.frame()
 
 ## iterate and do the things
 z = 1
 while (!is.null(x<-it$one())){
-  # huge list of players
+  # init a dataframe of players for the game
+  players = data.frame()
+  
+  # iterator is a big list of players
   gid = x$gamePk
   tmp_players = x$gameData$players
   for (i in 1:length(tmp_players)) {
@@ -178,35 +211,71 @@ while (!is.null(x<-it$one())){
     player$gid = gid
     # append
     players <<- bind_rows(players, player)
-  }
+  } #endfor
+  
+  # neo4j time -- write the players file to disk
+  write_csv(players, "neo4j/import/players.csv")
+  CYPHER = "
+  LOAD CSV WITH HEADERS FROM 'file:///players.csv' as row 
+  WITH row
+  MERGE (n:Player {id:row.id})
+  ON CREATE SET n += row
+  WITH row, n
+  MATCH (g:Game {id:row.gid})
+  CREATE (n)-[:PLAYED_IN]->(g)
+  "
+  call_neo4j("CREATE CONSTRAINT ON (n:Player) ASSERT n.id IS UNIQUE;", graph)
+  call_neo4j(CYPHER, graph)
+  
+  # cleanup
   cat("finished ", z, "\n")
   z = z + 1
-  rm(gid, tmp_players, i, tmp_player, cteam, cpos, player)
-}
+  rm(gid, tmp_players, i, tmp_player, cteam, cpos, player, CYPHER)
+  
+} #endwhile
 
 
 ######################## PLAYS data
 
 it <- m$iterate('{}')
-pbp = data.frame()
-pbp_players = data.frame()
-pbp_team = data.frame()
+# pbp = data.frame()
+# pbp_players = data.frame()
+# pbp_team = data.frame()
 
 ## iterate and do the things
 abc = 1
-while (!is.null(x<-it$one())){
+while (!is.null(x<-it$one())) {
+  
+  #init the dataframes
+  pbp = data.frame()
+  pbp_players = data.frame()
+  pbp_team = data.frame()
+  
+  # get the data
   gid = x$gamePk
   plays = x$liveData$plays$allPlays
+  
+  
+  ## !!!!!!!!!!!!!!!!!!!!!!!!!!
+  # if no plays, go to the next iteration, if good data falls outside pattern, its thrown away
+  if (length(plays) == 0) {
+    next
+  }
+  ## !!!!!!!!!!!!!!!!!!!!!!!!!!
+  
+  # work with each play
   for (i in 1:length(plays)) {
     play = plays[[i]]
-    pid = sprintf("%s_%s", gid, i)
+    pid = sprintf("%s%s", gid, i)
     result = as_tibble(play$result)
     goals = as_tibble(play$about$goals)
     play$about$goals = NULL
     about = as_tibble(play$about)
+    ## coords
     if (length(play$coordinates) > 0) {
       coords = as_tibble(play$coordinates)
     }
+    ## players
     if ("players" %in% names(play)) {
       play_players = data.frame()
       for (p in 1:length(play$players)) {
@@ -217,9 +286,11 @@ while (!is.null(x<-it$one())){
       }
       play_players$gid = gid
       play_players$pid = pid
+      play_players$seqnum = p
       pbp_players = bind_rows(pbp_players, play_players)
       rm(play_players)
     }
+    ## team -- the "main" person
     if ("team" %in% names(play)) {
       tmp_play_team = as_tibble(play$team)
       tmp_play_team$gid = gid
@@ -238,16 +309,78 @@ while (!is.null(x<-it$one())){
     if ("strength" %in% colnames(tmp_pbp)) {
       tmp_pbp$strength = NULL
     }
+    # add the seq number
+    tmp_pbp$seqnum = i
     # bind the data
     pbp = bind_rows(pbp, tmp_pbp)
     # cleanup
     rm(play, pid, result, goals, about)
   }
+  
+  # save out the data for import
+  write_csv(pbp, "neo4j/import/pbp.csv")
+  write_csv(pbp_players, "neo4j/import/pbp_players.csv")
+  write_csv(teams, "neo4j/import/pbp_team.csv")
+  
+  # import the plays -- gameid could be removed but for testing
+  CYPHER = "
+  LOAD CSV WITH HEADERS FROM 'file:///pbp.csv' as row 
+  WITH row
+  MERGE (n:Play {id:row.pid})
+  ON CREATE SET n += row
+  WITH row, n
+  MERGE (g:Game {id:row.gid})
+  CREATE (g)-[:HAD_PLAY]->(n)
+  "
+  call_neo4j("CREATE CONSTRAINT ON (n:Play) ASSERT n.id IS UNIQUE;", graph)
+  call_neo4j(CYPHER, graph)
+  
+  # import the main team for the play
+  CYPHER = "
+  LOAD CSV WITH HEADERS FROM 'file:///pbp_team.csv' as row 
+  WITH row
+  MERGE (t:Team {id:row.id})
+  MERGE (p:Play {id:row.pid})
+  CREATE (t)-[:STARTED]->(p)
+  "
+  call_neo4j(CYPHER, graph) 
+  
+  # import the players referenced in the play
+  CYPHER = "
+  LOAD CSV WITH HEADERS FROM 'file:///pbp_players.csv' as row 
+  MERGE (n:Player {id:row.id})
+  MERGE (p:Play {id:row.pid})
+  WITH row, n, p
+  // https://markhneedham.com/blog/2016/10/30/neo4j-create-dynamic-relationship-type/
+  CALL apoc.create.relationship(p, row.ptype, {}, n) YIELD rel
+  RETURN rel
+  "
+  call_neo4j(CYPHER, graph)  
+
+  # cleanup
   cat("finished ", abc, "\n")
   abc = abc + 1
-}
+
+} #endhwile
 
 
+
+
+
+
+
+## debugging
+abc
+i
+p
+
+
+
+
+
+
+# TODO: prev play 
+## same pbp file, filter seq 2+, find prev play, relate
 
 
 
