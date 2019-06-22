@@ -39,16 +39,7 @@ for (i in 1:nrow(games)) {
 m$count()
 
 
-######################## iterators via mongolite
-## iterator -- limit is the number of records to limit for the full iteration
-## iterator is a named list = sweet
-## it <- m$iterate('{}', limit = 1)
-
-##  ^^^^^^^^^^^^^^^^
-
-
-
-######################## GAME data
+############################################## GAME data
 it <- m$iterate('{}')
 game_data = data.frame()
 
@@ -74,11 +65,11 @@ with row
 MERGE (n:Game {id:row.id})
 ON CREATE SET n += row
 "
-call_neo4j("CREATE CONSTRAINT ON (n:Game) ASSERT n.id IS UNIQUE;", graph, include_stats = F, include_meta = F)
-call_neo4j(CYPHER, graph, include_stats = F, include_meta = F)
+call_neo4j("CREATE CONSTRAINT ON (n:Game) ASSERT n.id IS UNIQUE;", graph)
+call_neo4j(CYPHER, graph)
 
 
-######################## VENUE data
+############################################## VENUE data
 
 it <- m$iterate('{}')
 venue_data = data.frame()
@@ -116,7 +107,7 @@ call_neo4j("CREATE CONSTRAINT ON (n:Venue) ASSERT n.id IS UNIQUE;", graph)
 call_neo4j(CYPHER, graph)
 
 
-######################## create the teams
+############################################## TEAMS data
 
 ## get the teams from the api
 resp = jsonlite::fromJSON("http://statsapi.web.nhl.com/api/v1/teams")
@@ -166,21 +157,21 @@ WITH row
 MATCH (a:Team {id:row.away_id})
 MATCH (h:Team {id:row.home_id})
 MATCH (g:Game {id:row.gid})
-CREATE (h)<-[:HOME]-(g)-[:AWAY]->(a)
+CREATE (h)<-[:HOME_TEAM]-(g)-[:AWAY_TEAM]->(a)
 "
 call_neo4j(CYPHER, graph)
 
 
-######################## PLAYER data
+############################################## PLAYER data
 
 it <- m$iterate('{}')
-# players = data.frame()
 
 ## iterate and do the things
-z = 1
+abc = 1
 while (!is.null(x<-it$one())){
   # init a dataframe of players for the game
   players = data.frame()
+  players_roster = data.frame()
   
   # iterator is a big list of players
   gid = x$gamePk
@@ -191,7 +182,9 @@ while (!is.null(x<-it$one())){
     # break out the current team to append
     if ("currentTeam" %in% names(tmp_player)) {
       cteam = as_tibble(tmp_player$currentTeam)
-      colnames(cteam) = paste0("team_", colnames(cteam))
+      #colnames(cteam) = paste0("team_", colnames(cteam))
+      cteam$player_id = tmp_player$id
+      cteam$gid = gid
       tmp_player$currentTeam = NULL
     }
     if ("primaryPosition" %in% names(tmp_player)) {
@@ -203,7 +196,7 @@ while (!is.null(x<-it$one())){
     # put the dataframe together for the player
     player = as_tibble(tmp_player)
     if (exists("cteam")){
-      player = cbind(player, cteam)
+      players_roster <<- bind_rows(players_roster, cteam)
     }
     if (exists("cpos")) {
       player = cbind(player, cpos)
@@ -213,29 +206,49 @@ while (!is.null(x<-it$one())){
     players <<- bind_rows(players, player)
   } #endfor
   
-  # neo4j time -- write the players file to disk
+  # save the datasets
   write_csv(players, "neo4j/import/players.csv")
+  write_csv(players_roster, "neo4j/import/players_roster.csv")
+  
+  # import the players overall -- TODO: can consider breaking out position too
   CYPHER = "
   LOAD CSV WITH HEADERS FROM 'file:///players.csv' as row 
   WITH row
   MERGE (n:Player {id:row.id})
   ON CREATE SET n += row
-  WITH row, n
-  MATCH (g:Game {id:row.gid})
-  CREATE (n)-[:PLAYED_IN]->(g)
+  // WITH row, n
+  // MATCH (g:Game {id:row.gid})
+  // CREATE (n)-[:PLAYED_IN]->(g)
   "
   call_neo4j("CREATE CONSTRAINT ON (n:Player) ASSERT n.id IS UNIQUE;", graph)
   call_neo4j(CYPHER, graph)
   
+  # the skater/team/game association
+  CYPHER = "
+  LOAD CSV WITH HEADERS FROM 'file:///players_roster.csv' as row 
+  WITH row
+  MATCH (a:Player {id:row.player_id})
+  MATCH (b:Team {id:row.id})
+  MATCH (c:Game {id:row.gid})
+  CREATE (d:Roster)
+  CREATE (a)-[:ON]->(d)
+  CREATE (b)-[:HAD]->(d)
+  CREATE (d)-[:PART_OF]->(c)
+  "
+  call_neo4j(CYPHER, graph)
+  
   # cleanup
-  cat("finished ", z, "\n")
-  z = z + 1
-  rm(gid, tmp_players, i, tmp_player, cteam, cpos, player, CYPHER)
+  cat("finished ", abc, "\n")
+  abc = abc + 1
+  rm(gid, tmp_players, i, tmp_player, cteam, cpos, CYPHER)
+  file.remove("neo4j/import/players.csv")
+  file.remove("neo4j/import/players_roster.csv")
   
 } #endwhile
 
 
-######################## PLAYS data
+
+############################################## PLAYS data
 
 it <- m$iterate('{}')
 
@@ -252,13 +265,11 @@ while (!is.null(x<-it$one())) {
   gid = x$gamePk
   plays = x$liveData$plays$allPlays
   
-  
   ## !!!!!!!!!!!!!!!!!!!!!!!!!!
   # if no plays, go to the next iteration, if good data falls outside pattern, its thrown away
   if (length(plays) == 0) {
     next
   }
-  ## !!!!!!!!!!!!!!!!!!!!!!!!!!
   
   # work with each play
   for (i in 1:length(plays)) {
@@ -370,59 +381,12 @@ while (!is.null(x<-it$one())) {
   # cleanup
   cat("finished game", abc, "\n")
   abc = abc + 1
+  file.remove("neo4j/import/pbp.csv")
+  file.remove("neo4j/import/pbp_players.csv")
+  file.remove("neo4j/import/pbp_team.csv")
+  file.remove("neo4j/import/pbp_seq.csv")
 
 } #endhwile
-
-
-
-
-
-
-
-
-
-
-
-## debugging
-abc
-i
-p
-
-
-
-
-
-
-# TODO: prev play 
-## same pbp file, filter seq 2+, find prev play, relate
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
