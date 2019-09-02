@@ -87,7 +87,7 @@ http://localhost:8081/
 Visit above in a web browser, like Chrome, to see the MongoExpress tool.  If a screen like below, but not exactly, loads, you should be good to go:
 
 
-<img src="https://monosnap.com/file/XGGSU1jJsCquz6VKQ9BbJjttRBgVMO" width="800" />
+<img src="https://monosnap.com/file/XGGSU1jJsCquz6VKQ9BbJjttRBgVMO"/>
 
 
 Test Neo4j:
@@ -100,7 +100,7 @@ http://localhost:7474/browser/
 
 And see something similar to below:
 
-<img src="https://monosnap.com/file/9k4d2IkXEZpFiTSGVbQqUVnumWv8kf" width="800" />
+<img src="https://monosnap.com/file/9k4d2IkXEZpFiTSGVbQqUVnumWv8kf"/>
 
 
 ## Data Import
