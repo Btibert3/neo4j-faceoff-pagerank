@@ -16,7 +16,7 @@ straight forward enough but if you have a hiccup, don't hesistate to reach out.
 
 For example, on my local Macbook, I know that I have Docker running via a service in my toolbar shown below.
 
-![](https://monosnap.com/file/vMoaGecqhRtcgykXXOaAY6mmDsamJr)
+<img src="https://monosnap.com/file/vMoaGecqhRtcgykXXOaAY6mmDsamJr" width="800" />
 
 #### Windows
 
@@ -86,7 +86,8 @@ http://localhost:8081/
 
 Visit above in a web browser, like Chrome, to see the MongoExpress tool.  If a screen like below, but not exactly, loads, you should be good to go:
 
-![](https://monosnap.com/file/XGGSU1jJsCquz6VKQ9BbJjttRBgVMO)
+
+<img src="https://monosnap.com/file/XGGSU1jJsCquz6VKQ9BbJjttRBgVMO" width="800" />
 
 
 Test Neo4j:
@@ -99,8 +100,7 @@ http://localhost:7474/browser/
 
 And see something similar to below:
 
-![](https://monosnap.com/file/9k4d2IkXEZpFiTSGVbQqUVnumWv8kf)
-
+<img src="https://monosnap.com/file/9k4d2IkXEZpFiTSGVbQqUVnumWv8kf" width="800" />
 
 
 ## Data Import
