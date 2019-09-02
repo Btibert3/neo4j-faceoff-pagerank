@@ -16,7 +16,8 @@ straight forward enough but if you have a hiccup, don't hesistate to reach out.
 
 For example, on my local Macbook, I know that I have Docker running via a service in my toolbar shown below.
 
-<img src="https://monosnap.com/file/vMoaGecqhRtcgykXXOaAY6mmDsamJr" width="800" />
+`<img src="https://monosnap.com/file/vMoaGecqhRtcgykXXOaAY6mmDsamJr" width="800" />`
+![](https://github.com/Btibert3/neo4j-faceoff-pagerank/raw/master/figs/docker-bar.png)
 
 #### Windows
 
