@@ -2,6 +2,11 @@
 
 Pagerank for NHL faceoffs (mark's tennis post) using neo4j in docker, apoc, etc.
 
+## Setup
+
+For a detailed setup, please refer to `SETUP.md` at the root of this project's repo.
+
+
 ## Docker
 
 ```
