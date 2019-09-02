@@ -114,3 +114,35 @@ The shot model file is not yet complete, but at the very least, the `import` fil
 
 The code itself is intended to be run interactively, and not as a program or via `source`.  If/when run interactively, this might help catch local setup issues or bugs in the crawling process.
 
+## Interact with Docker
+
+First, if nothing errored out above (a good thing), we can ensure that our docker-compose file is still running and the services can be listed.
+
+From the same working directory where we ran the `docker-compose.yml` command, we can run
+
+```
+docker-compose ps
+```
+
+We should see something like below (which is run in RStudio Desktop):
+
+![](https://github.com/Btibert3/neo4j-faceoff-pagerank/raw/master/figs/docker-ps.png)
+
+This shows us the services that are running as part of our docker-compose file.
+
+Just as we started the file, we can stop with 
+
+```
+docker-compose stop
+```
+
+That should print status updates in the terminal and eventually inform us that everything has been shut down.
+
+Another call to 
+
+```
+docker-compose ps
+```
+
+should confirm this.
+
